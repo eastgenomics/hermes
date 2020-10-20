@@ -11,6 +11,7 @@ python hermes.py msg "Message to send to egg-alerts"
 import argparse
 import logging.config
 import os
+import time
 
 from slack import WebClient
 from slack.errors import SlackApiError
@@ -98,6 +99,7 @@ def send_message(client, message, logger):
             )
             logger.error(f"Sending message - Retrying...{i} out of 5")
             i += 1
+            time.sleep(60.0)
         else:
             logger.info("Sending message - Message sent!")
             return True
