@@ -2,10 +2,10 @@
 
 """ Hermes
 Slack bot to send messages
-Needs Python3.6
+Needs Python > 3.6
 
 Usage:
-python hermes.py msg "message" slack_token.txt egg-alerts
+python hermes.py msg "message" slack_token.txt slack_channel
 """
 
 import argparse
@@ -50,6 +50,21 @@ def setup_logging():
 
 
 def get_slack_token(token_file, logger, verbose):
+    """ Returns slack token retrieved from token file
+
+    Args:
+        token_file (str): File containing Slack token
+        logger (Logger): Logger object
+        verbose (bool): Verbose
+
+    Raises:
+        e: Raised when token_file doesn't exist
+        e: Raised when token doesn't start with "xoxb-"
+
+    Returns:
+        str: Slack token
+    """
+
     try:
         assert os.path.exists(token_file)
     except AssertionError as e:
@@ -91,6 +106,20 @@ def get_slack_token(token_file, logger, verbose):
 
 
 def connect_to_slack(token, logger, verbose):
+    """ Return Slack WebClient
+
+    Args:
+        token (str): Slack token
+        logger (Logger): Logger
+        verbose (bool): Verbose
+
+    Raises:
+        e: Raised when couldn't connect to Slack
+
+    Returns:
+        WebClient: Slack WebClient
+    """
+
     try:
         client = WebClient(token=token)
     except Exception as e:
@@ -110,6 +139,16 @@ def connect_to_slack(token, logger, verbose):
 
 
 def send_message(client, message, channel, logger, verbose):
+    """ Sends messages to Slack
+
+    Args:
+        client (WebClient): Slack WebClient
+        message (str): Message to send
+        channel (str): Channel to send message to
+        logger (Logger): Logger
+        verbose (bool): Verbose
+    """
+
     i = 1
 
     while i <= 5:
@@ -141,7 +180,7 @@ def send_message(client, message, channel, logger, verbose):
             if verbose:
                 print(f"Sending message to {channel} - Message sent!")
 
-            return True
+            sys.exit(0)
 
     logger.error(
         (
