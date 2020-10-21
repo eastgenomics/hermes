@@ -17,7 +17,11 @@ import sys
 from slack import WebClient
 from slack.errors import SlackApiError
 
-from slack_token import hermes_token
+try:
+    from slack_token import hermes_token
+except ImportError as e:
+    print(f"Can't import \"slack_token\": {e}")
+    sys.exit(-1)
 
 
 def setup_logging():
