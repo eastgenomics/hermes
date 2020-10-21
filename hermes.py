@@ -2,16 +2,17 @@
 
 """ Hermes
 Slack bot to send messages
-Needs Python3.6
+Needs Python > 3.6
 
 Usage:
-python hermes.py msg "Message to send to egg-alerts"
+python hermes.py msg "message" slack_token.txt slack_channel
 """
 
 import argparse
 import logging.config
 import os
 import time
+import sys
 
 from slack import WebClient
 from slack.errors import SlackApiError
@@ -48,18 +49,42 @@ def setup_logging():
     return logging.getLogger("hermes")
 
 
-def get_slack_token(logger):
+def get_slack_token(token_file, logger, verbose):
+    """ Returns slack token retrieved from token file
+
+    Args:
+        token_file (str): File containing Slack token
+        logger (Logger): Logger object
+        verbose (bool): Verbose
+
+    Raises:
+        e: Raised when token_file doesn't exist
+        e: Raised when token doesn't start with "xoxb-"
+
+    Returns:
+        str: Slack token
+    """
+
     try:
-        assert os.path.exists("slack_token.txt")
+        assert os.path.exists(token_file)
     except AssertionError as e:
         logger.error("Getting slack token - Token file doesn't exist")
-        raise
+
+        if verbose:
+            print("Getting slack token - Token file doesn't exist")
+
+        raise e
     else:
         logger.info(
             "Getting slack token - Token file found, retrieving token..."
         )
 
-        with open("slack_token.txt") as f:
+        if verbose:
+            print(
+                "Getting slack token - Token file found, retrieving token..."
+            )
+
+        with open(token_file) as f:
             token = f.readline().strip()
 
         try:
@@ -68,62 +93,136 @@ def get_slack_token(logger):
             logger.error(
                 "Getting slack token - Token doesn't match what's expected"
             )
-            raise
+
+            if verbose:
+                print(
+                    "Getting slack token - Token doesn't match what's expected"
+                )
+
+            raise e
         else:
             logger.info("Getting slack token - Token retrieved successfully")
             return token
 
 
-def connect_to_slack(token, logger):
+def connect_to_slack(token, logger, verbose):
+    """ Return Slack WebClient
+
+    Args:
+        token (str): Slack token
+        logger (Logger): Logger
+        verbose (bool): Verbose
+
+    Raises:
+        e: Raised when couldn't connect to Slack
+
+    Returns:
+        WebClient: Slack WebClient
+    """
+
     try:
         client = WebClient(token=token)
     except Exception as e:
         logger.error(f"Connect to slack - Unsuccessful: {e}")
+
+        if verbose:
+            print(f"Connect to slack - Unsuccessful: {e}")
+
         raise e
     else:
-        logger.info(f"Connect to slack - Successful")
+        logger.info("Connect to slack - Successful")
+
+        if verbose:
+            print("Connect to slack - Successful")
+
         return client
 
 
-def send_message(client, message, logger):
-    i = 0
+def send_message(client, message, channel, logger, verbose):
+    """ Sends messages to Slack
+
+    Args:
+        client (WebClient): Slack WebClient
+        message (str): Message to send
+        channel (str): Channel to send message to
+        logger (Logger): Logger
+        verbose (bool): Verbose
+    """
+
+    i = 1
 
     while i <= 5:
         try:
             response = client.chat_postMessage(
-                channel='#egg-alerts',
+                channel=f'#{channel}',
                 text=message)
         except Exception as e:
             logger.error(
-                f"Sending message - Unsuccessful: {e}"
+                f"Sending message to {channel} - Unsuccessful: {e}"
             )
-            logger.error(f"Sending message - Retrying...{i} out of 5")
+            logger.error((
+                f"Sending message to {channel} - "
+                f"Retrying...{i} out of 5"
+            ))
+
+            if verbose:
+                print(f"Sending message to {channel} - Unsuccessful: {e}")
+                print((
+                    f"Sending message to {channel} - "
+                    f"Retrying...{i} out of 5"
+                ))
+
             i += 1
-            time.sleep(60.0)
+            time.sleep(30.0)
         else:
-            logger.info("Sending message - Message sent!")
-            return True
+            logger.info(f"Sending message to {channel} - Message sent!")
+
+            if verbose:
+                print(f"Sending message to {channel} - Message sent!")
+
+            sys.exit(0)
 
     logger.error(
-        "Sending message - Unsucessful: couldn't send message after 5 tries"
+        (
+            f"Sending message to {channel} - "
+            "Unsucessful: couldn't send message after 5 tries"
+        )
     )
+
+    if verbose:
+        print((
+            f"Sending message to {channel} - "
+            "Unsucessful: couldn't send message after 5 tries"
+        ))
+
+    sys.exit(-1)
 
 
 def main(param):
     logger = setup_logging()
-    token = get_slack_token(logger)
-    client = connect_to_slack(token, logger)
+    token = get_slack_token(param["token_file"], logger, param["verbose"])
+    client = connect_to_slack(token, logger, param["verbose"])
 
     if param["cmd"] == "msg":
-        send_message(client, param["message"], logger)
+        send_message(
+            client, param["message"], param["channel"],
+            logger, param["verbose"]
+        )
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     subparser = parser.add_subparsers(dest="cmd")
 
+    parser.add_argument("token_file", help="File containing the slack token")
+    parser.add_argument("channel", help="Channel to send to")
+    parser.add_argument(
+        "-v", "--verbose", default=False,
+        action="store_true", help="Verbose for dx apps"
+    )
+
     msg = subparser.add_parser("msg")
-    msg.add_argument("message")
+    msg.add_argument("message", help="Message to send in Slack")
 
     args = vars(parser.parse_args())
 
