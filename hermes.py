@@ -212,7 +212,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     subparser = parser.add_subparsers(dest="cmd")
 
-    parser.add_argument("channel", help="Channel to send to")
+    parser.add_argument(
+        "channel", choices=["egg-logs", "egg-alerts"],
+        help="Channel to send to"
+    )
     parser.add_argument(
         "-v", "--verbose", default=False,
         action="store_true", help="Verbose for dx apps"
