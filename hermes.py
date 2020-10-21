@@ -48,9 +48,9 @@ def setup_logging():
     return logging.getLogger("hermes")
 
 
-def get_slack_token(logger):
+def get_slack_token(token_file, logger):
     try:
-        assert os.path.exists("slack_token.txt")
+        assert os.path.exists(token_file)
     except AssertionError as e:
         logger.error("Getting slack token - Token file doesn't exist")
         raise
@@ -59,7 +59,7 @@ def get_slack_token(logger):
             "Getting slack token - Token file found, retrieving token..."
         )
 
-        with open("slack_token.txt") as f:
+        with open(token_file) as f:
             token = f.readline().strip()
 
         try:
@@ -85,45 +85,54 @@ def connect_to_slack(token, logger):
         return client
 
 
-def send_message(client, message, logger):
-    i = 0
+def send_message(client, message, channel, logger):
+    i = 1
 
     while i <= 5:
         try:
             response = client.chat_postMessage(
-                channel='#egg-alerts',
+                channel=f'#{channel}',
                 text=message)
         except Exception as e:
             logger.error(
-                f"Sending message - Unsuccessful: {e}"
+                f"Sending message to {channel} - Unsuccessful: {e}"
             )
-            logger.error(f"Sending message - Retrying...{i} out of 5")
+            logger.error((
+                f"Sending message to {channel} - "
+                "Retrying...{i} out of 5"
+            ))
             i += 1
-            time.sleep(60.0)
+            time.sleep(30.0)
         else:
-            logger.info("Sending message - Message sent!")
+            logger.info(f"Sending message to {channel} - Message sent!")
             return True
 
     logger.error(
-        "Sending message - Unsucessful: couldn't send message after 5 tries"
+        (
+            f"Sending message to {channel} - "
+            "Unsucessful: couldn't send message after 5 tries"
+        )
     )
 
 
 def main(param):
     logger = setup_logging()
-    token = get_slack_token(logger)
+    token = get_slack_token(param["token_file"], logger)
     client = connect_to_slack(token, logger)
 
     if param["cmd"] == "msg":
-        send_message(client, param["message"], logger)
+        send_message(client, param["message"], param["channel"], logger)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     subparser = parser.add_subparsers(dest="cmd")
 
+    parser.add_argument("token_file", help="File containing the slack token")
+    parser.add_argument("channel", help="Channel to send to")
+
     msg = subparser.add_parser("msg")
-    msg.add_argument("message")
+    msg.add_argument("message", help="Message to send in Slack")
 
     args = vars(parser.parse_args())
 
