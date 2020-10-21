@@ -180,7 +180,7 @@ def send_message(client, message, channel, logger, verbose):
             if verbose:
                 print(f"Sending message to {channel} - Message sent!")
 
-            sys.exit(0)
+            return True
 
     logger.error(
         (
