@@ -10,7 +10,6 @@ python hermes.py msg "message" slack_channel [-v]
 
 import argparse
 import logging.config
-import os
 import time
 import sys
 
