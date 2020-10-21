@@ -21,7 +21,7 @@ try:
     from slack_token import hermes_token
 except ImportError as e:
     print(f"Can't import \"slack_token\": {e}")
-    sys.exit(-1)
+    raise e
 
 
 def setup_logging():
