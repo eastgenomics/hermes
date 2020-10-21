@@ -5,7 +5,7 @@ Slack bot to send messages
 Needs Python > 3.6
 
 Usage:
-python hermes.py msg "message" slack_token.txt slack_channel
+python hermes.py msg "message" slack_channel [-v]
 """
 
 import argparse
@@ -49,11 +49,10 @@ def setup_logging():
     return logging.getLogger("hermes")
 
 
-def get_slack_token(token_file, logger, verbose):
+def get_slack_token(logger, verbose):
     """ Returns slack token retrieved from token file
 
     Args:
-        token_file (str): File containing Slack token
         logger (Logger): Logger object
         verbose (bool): Verbose
 
@@ -66,7 +65,7 @@ def get_slack_token(token_file, logger, verbose):
     """
 
     try:
-        assert os.path.exists(token_file)
+        assert os.path.exists("slack_token.py")
     except AssertionError as e:
         logger.error("Getting slack token - Token file doesn't exist")
 
@@ -84,11 +83,10 @@ def get_slack_token(token_file, logger, verbose):
                 "Getting slack token - Token file found, retrieving token..."
             )
 
-        with open(token_file) as f:
-            token = f.readline().strip()
+        from slack_token import hermes_token
 
         try:
-            assert token.startswith("xoxb-")
+            assert hermes_token.startswith("xoxb-")
         except AssertionError as e:
             logger.error(
                 "Getting slack token - Token doesn't match what's expected"
@@ -102,7 +100,7 @@ def get_slack_token(token_file, logger, verbose):
             raise e
         else:
             logger.info("Getting slack token - Token retrieved successfully")
-            return token
+            return hermes_token
 
 
 def connect_to_slack(token, logger, verbose):
@@ -200,7 +198,7 @@ def send_message(client, message, channel, logger, verbose):
 
 def main(param):
     logger = setup_logging()
-    token = get_slack_token(param["token_file"], logger, param["verbose"])
+    token = get_slack_token(logger, param["verbose"])
     client = connect_to_slack(token, logger, param["verbose"])
 
     if param["cmd"] == "msg":
@@ -214,7 +212,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     subparser = parser.add_subparsers(dest="cmd")
 
-    parser.add_argument("token_file", help="File containing the slack token")
     parser.add_argument("channel", help="Channel to send to")
     parser.add_argument(
         "-v", "--verbose", default=False,
