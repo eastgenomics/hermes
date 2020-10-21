@@ -17,6 +17,8 @@ import sys
 from slack import WebClient
 from slack.errors import SlackApiError
 
+from slack_token import hermes_token
+
 
 def setup_logging():
     logging.config.dictConfig({
@@ -47,60 +49,6 @@ def setup_logging():
     })
 
     return logging.getLogger("hermes")
-
-
-def get_slack_token(logger, verbose):
-    """ Returns slack token retrieved from token file
-
-    Args:
-        logger (Logger): Logger object
-        verbose (bool): Verbose
-
-    Raises:
-        e: Raised when token_file doesn't exist
-        e: Raised when token doesn't start with "xoxb-"
-
-    Returns:
-        str: Slack token
-    """
-
-    try:
-        assert os.path.exists("slack_token.py")
-    except AssertionError as e:
-        logger.error("Getting slack token - Token file doesn't exist")
-
-        if verbose:
-            print("Getting slack token - Token file doesn't exist")
-
-        raise e
-    else:
-        logger.info(
-            "Getting slack token - Token file found, retrieving token..."
-        )
-
-        if verbose:
-            print(
-                "Getting slack token - Token file found, retrieving token..."
-            )
-
-        from slack_token import hermes_token
-
-        try:
-            assert hermes_token.startswith("xoxb-")
-        except AssertionError as e:
-            logger.error(
-                "Getting slack token - Token doesn't match what's expected"
-            )
-
-            if verbose:
-                print(
-                    "Getting slack token - Token doesn't match what's expected"
-                )
-
-            raise e
-        else:
-            logger.info("Getting slack token - Token retrieved successfully")
-            return hermes_token
 
 
 def connect_to_slack(token, logger, verbose):
@@ -198,8 +146,7 @@ def send_message(client, message, channel, logger, verbose):
 
 def main(param):
     logger = setup_logging()
-    token = get_slack_token(logger, param["verbose"])
-    client = connect_to_slack(token, logger, param["verbose"])
+    client = connect_to_slack(hermes_token, logger, param["verbose"])
 
     if param["cmd"] == "msg":
         send_message(
